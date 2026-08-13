@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北京高速公路重卡站 · 方案动态测算</title>
+<style>
+:root{
+  --bg:#eef1f6; --panel:#ffffff; --tint:#f4f6fa; --line:#c9d2e0; --line2:#e3e8f0;
+  --txt:#0a1020; --dim:#4a5567; --dim2:#78849a;
+  --p1:#0052cc;  /* 方案一 蓝 */
+  --p2:#c2410c;  /* 方案二 橙 */
+  --p3:#047857;  /* 方案三 绿 */
+  --k1:#047857; --k2:#b45309; --k3:#0052cc; --k4:#6d28d9; --neg:#c0261a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  padding:20px 24px 56px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1440px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  margin-bottom:16px;padding-bottom:14px;border-bottom:3px solid var(--txt)}
+h1{font-size:25px;font-weight:800;letter-spacing:.3px}
+h1 span{color:var(--p1)}
+.sub{color:var(--dim);font-size:12.5px;margin-top:6px;font-weight:500}
+.badge{background:var(--txt);color:#fff;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600}
+.badge b{color:#ffd75e;font-weight:800}
+
+.card{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:18px 20px}
+.card h2{font-size:13px;font-weight:800;letter-spacing:1.2px;margin-bottom:16px;
+  padding-bottom:10px;border-bottom:2px solid var(--line2);display:flex;align-items:center;gap:8px}
+.card h2::before{content:'';width:5px;height:15px;background:var(--p1);border-radius:1px}
+
+/* ---------- controls ---------- */
+.top{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-bottom:16px}
+.ctrl{margin-bottom:20px}
+.clab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+.clab .n{font-size:14px;font-weight:700}
+.clab .n em{font-style:normal;color:var(--dim2);font-size:11.5px;margin-left:7px;font-weight:500}
+.clab .v{font-size:20px;font-weight:800;color:var(--p1);font-variant-numeric:tabular-nums}
+.clab .v u{text-decoration:none;font-size:12px;color:var(--dim);font-weight:600;margin-left:3px}
+input[type=range]{-webkit-appearance:none;width:100%;height:8px;border-radius:5px;
+  background:#d5dce8;outline:none;border:1px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--p1);cursor:pointer;border:4px solid #fff;box-shadow:0 0 0 2px var(--p1),0 2px 5px rgba(0,0,0,.28)}
+.ticks{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--dim2);font-weight:600}
+
+.derived{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;
+  padding-top:16px;border-top:2px dashed var(--line)}
+.dv{background:var(--tint);border:1.5px solid var(--line2);border-radius:8px;padding:11px 12px;text-align:center}
+.dv .k{font-size:11.5px;color:var(--dim);margin-bottom:5px;font-weight:600}
+.dv .n{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
+.dv .n small{font-size:11.5px;color:var(--dim);font-weight:600;margin-left:2px}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{border:2px solid var(--k);border-radius:9px;padding:14px 16px;background:var(--panel)}
+.kpi .t{font-size:12.5px;font-weight:700;color:var(--k);margin-bottom:9px;
+  display:flex;align-items:center;gap:6px}
+.kpi .t i{width:8px;height:8px;background:var(--k);border-radius:50%;display:inline-block}
+.kpi .big{font-size:40px;font-weight:800;line-height:1;color:var(--k);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.kpi .big small{font-size:16px;font-weight:700;margin-left:3px}
+.kpi .cmp{font-size:11.5px;color:var(--dim);margin-top:10px;padding-top:9px;border-top:1.5px dashed var(--line2);
+  display:flex;gap:14px;font-weight:600}
+.kpi .cmp b{font-weight:800;color:var(--txt);font-variant-numeric:tabular-nums}
+
+/* ---------- table ---------- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font-weight:800;font-size:11.5px;text-align:right;padding:9px 10px;background:var(--txt);color:#fff;white-space:nowrap;line-height:1.35}
+th:first-child,td:first-child{text-align:left}
+th:first-child{border-radius:6px 0 0 0} th:last-child{border-radius:0 6px 0 0}
+td{padding:12px 10px;border-bottom:1.5px solid var(--line2);text-align:right;white-space:nowrap;font-weight:600}
+tbody tr.cur td{background:#e8f0ff;font-weight:800}
+tbody tr.cur td:first-child{box-shadow:inset 5px 0 0 var(--p1)}
+.n1{color:#047857;font-weight:800} .neg{color:var(--neg);font-weight:800} .mut{color:var(--dim);font-weight:600}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:9px;vertical-align:0}
+.win{display:inline-block;background:#047857;color:#fff;font-size:9.5px;font-weight:800;
+  border-radius:3px;padding:2px 5px;margin-left:7px;vertical-align:1.5px;letter-spacing:.5px}
+
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.ctitle{font-size:12.5px;font-weight:800;margin-bottom:10px;padding-left:9px;border-left:4px solid var(--p1)}
+svg{width:100%;height:auto;display:block}
+.lg{display:flex;gap:16px;font-size:11.5px;color:var(--dim);margin-top:9px;justify-content:center;flex-wrap:wrap;font-weight:600}
+.lg i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.foot{margin-top:16px;font-size:11.5px;color:var(--dim);line-height:1.9;
+  background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:15px 20px;font-weight:500}
+.foot b{color:var(--txt);font-weight:800}
+.btn{background:var(--panel);border:2px solid var(--line);color:var(--txt);border-radius:6px;
+  padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:var(--p1);color:var(--p1)}
+details summary{cursor:pointer;font-size:13px;font-weight:700;list-style:none;outline:none;
+  display:flex;align-items:center;gap:7px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'▸';color:var(--p1);font-size:15px;transition:.15s}
+details[open] summary::before{transform:rotate(90deg)}
+details[open] summary{margin-bottom:16px}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.swipe{display:none;font-size:11px;color:var(--dim2);font-weight:600;margin-top:8px;text-align:center}
+
+@media(max-width:1100px){.top,.charts{grid-template-columns:1fr}}
+
+/* ---------- 手机 ---------- */
+@media(max-width:820px){
+  body{padding:13px 11px 36px}
+  header{padding-bottom:11px;border-bottom-width:2px}
+  h1{font-size:18.5px;line-height:1.35}
+  .sub{font-size:11.5px;line-height:1.55;margin-top:5px}
+  .badge{padding:6px 12px;font-size:12px}
+  .btn{padding:6px 11px;font-size:12px}
+  .card{padding:14px 13px;border-radius:9px;border-width:1.5px}
+  .card h2{font-size:12px;margin-bottom:13px;letter-spacing:.8px}
+  .top{gap:12px;margin-bottom:12px}
+  .ctrl{margin-bottom:17px}
+  .clab .n{font-size:13px} .clab .n em{display:none} .clab .v{font-size:18px}
+  .ticks{font-size:10px}
+  .derived{grid-template-columns:1fr 1fr 1fr;gap:7px;padding-top:13px}
+  .dv{padding:9px 4px} .dv .k{font-size:9.5px;line-height:1.25} .dv .n{font-size:16px}
+  .kpis{gap:9px}
+  .kpi{padding:11px 12px;border-width:1.5px}
+  .kpi .t{font-size:11px;line-height:1.3;margin-bottom:7px}
+  .kpi .big{font-size:28px;letter-spacing:-.5px} .kpi .big small{font-size:13px}
+  .kpi .cmp{flex-direction:column;gap:3px;font-size:10.5px;margin-top:8px;padding-top:7px}
+  table{font-size:12.5px}
+  th{font-size:10.5px;padding:8px 6px} td{padding:10px 6px}
+  #cmpTable th:first-child{width:auto}
+  /* 手机上隐藏次要列，只留决策用的 4 个指标 */
+  #cmpTable tr>:nth-child(2),#cmpTable tr>:nth-child(3),#cmpTable tr>:nth-child(8){display:none}
+  .win{display:none}
+  .charts{gap:15px;margin-top:15px}
+  .ctitle{font-size:12px}
+  .lg{gap:11px;font-size:11px}
+  .swipe{display:block}
+  .foot{font-size:11px;line-height:1.8;padding:13px 14px;border-width:1.5px}
+  details summary{font-size:12.5px}
+}
+@media(max-width:400px){
+  .kpi .big{font-size:25px}
+  .derived{grid-template-columns:1fr 1fr}
+  .derived .dv:last-child{grid-column:span 2}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>北京高速公路重卡站 · <span>方案动态测算</span></h1>
+    <div class="sub">拖动滑块调整关键参数，IRR / 投资回收期 / 年均净利润 / 年均税后净现金流 实时联动 · 测算期 10 年</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="badge">当前：<b id="tag">方案一</b></div>
+    <button class="btn" onclick="reset()">恢复默认</button>
+  </div>
+</header>
+
+<div class="top">
+  <div class="card">
+    <h2>可调参数</h2>
+
+    <div class="ctrl">
+      <div class="clab"><span class="n">重卡充电车位数<em>每车位 1 台 400kW 双枪桩</em></span>
+        <span class="v"><span id="v_t">1</span><u>个</u></span></div>
+      <input type="range" id="s_t" min="1" max="3" step="1" value="1">
+      <div class="ticks"><span>1 · 方案一</span><span>2 · 方案二</span><span>3 · 方案三</span></div>
+    </div>
+
+    <div class="ctrl">
+      <div class="clab"><span class="n">场地方分成比例<em>按服务费收入计提</em></span>
+        <span class="v"><span id="v_s">40</span><u>%</u></span></div>
+      <input type="range" id="s_s" min="0" max="70" step="5" value="40">
+      <div class="ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>70%</span></div>
+    </div>
+
+    <div class="ctrl">
+      <div class="clab"><span class="n">重卡单枪日均充电量<em>默认 300</em></span>
+        <span class="v"><span id="v_tk">300</span><u>度/枪·日</u></span></div>
+      <input type="range" id="s_tk" min="100" max="1300" step="25" value="300">
+      <div class="ticks"><span>100</span><span>400</span><span>700</span><span>1000</span><span>1300</span></div>
+    </div>
+
+    <div class="ctrl" style="margin-bottom:6px">
+      <div class="clab"><span class="n">小车单枪日均充电量<em>默认 120</em></span>
+        <span class="v"><span id="v_ck">120</span><u>度/枪·日</u></span></div>
+      <input type="range" id="s_ck" min="20" max="300" step="5" value="120">
+      <div class="ticks"><span>20</span><span>90</span><span>160</span><span>230</span><span>300</span></div>
+    </div>
+
+    <div class="derived">
+      <div class="dv"><div class="k">小车充电车位（联动）</div><div class="n" id="d_car">30<small>个</small></div></div>
+      <div class="dv"><div class="k">总装机容量</div><div class="n" id="d_cap">2200<small>KVA</small></div></div>
+      <div class="dv"><div class="k">总投资</div><div class="n" id="d_inv">176<small>万元</small></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>当前方案 · 核心收益指标</h2>
+    <div class="kpis">
+      <div class="kpi" style="--k:var(--k1)">
+        <div class="t"><i></i>内部收益率 IRR</div>
+        <div class="big"><span id="k_irr">—</span><small>%</small></div>
+        <div class="cmp" id="c_irr"></div>
+      </div>
+      <div class="kpi" style="--k:var(--k2)">
+        <div class="t"><i></i>投资回收期</div>
+        <div class="big"><span id="k_pb">—</span><small>年</small></div>
+        <div class="cmp" id="c_pb"></div>
+      </div>
+      <div class="kpi" style="--k:var(--k3)">
+        <div class="t"><i></i>平均每年净利润</div>
+        <div class="big"><span id="k_np">—</span><small>万元</small></div>
+        <div class="cmp" id="c_np"></div>
+      </div>
+      <div class="kpi" style="--k:var(--k4)">
+        <div class="t"><i></i>平均每年净现金流（税后）</div>
+        <div class="big"><span id="k_cf">—</span><small>万元</small></div>
+        <div class="cmp" id="c_cf"></div>
+      </div>
+    </div>
+    <div style="margin-top:15px;padding-top:14px;border-top:2px dashed var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div><div style="font-size:11.5px;color:var(--dim);font-weight:600;margin-bottom:4px">年充电总量</div>
+        <div style="font-size:17px;font-weight:800" id="d_e">—</div></div>
+      <div><div style="font-size:11.5px;color:var(--dim);font-weight:600;margin-bottom:4px">首年总收入</div>
+        <div style="font-size:17px;font-weight:800" id="d_rev">—</div></div>
+      <div><div style="font-size:11.5px;color:var(--dim);font-weight:600;margin-bottom:4px">等效日利用率</div>
+        <div style="font-size:17px;font-weight:800" id="d_util">—</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>三方案横向对比（同一组参数假设下）</h2>
+  <div class="tw"><table id="cmpTable">
+    <thead><tr>
+      <th style="width:230px">方案（重卡车位 → 小车车位）</th>
+      <th>总容量<br>KVA</th><th>总投资<br>万元</th>
+      <th>IRR</th><th>回收期<br>年</th>
+      <th>年均净利润<br>万元</th><th>年均税后净现金流<br>万元</th>
+      <th>10年累计税后现金流<br>万元</th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table></div>
+  <div class="swipe">手机端已精简为 4 项决策指标 · 完整列见电脑端</div>
+  <div class="charts">
+    <div>
+      <div class="ctitle">IRR 与投资回收期</div>
+      <svg id="c1" viewBox="0 0 560 250"></svg>
+      <div class="lg"><span><i style="background:#047857"></i>IRR（左轴 %）</span><span><i style="background:#b45309"></i>回收期（右轴 年）</span></div>
+    </div>
+    <div>
+      <div class="ctitle">累计税后净现金流曲线</div>
+      <svg id="c2" viewBox="0 0 560 250"></svg>
+      <div class="lg"><span><i style="background:var(--p1)"></i>方案一</span><span><i style="background:var(--p2)"></i>方案二</span><span><i style="background:var(--p3)"></i>方案三</span><span style="color:var(--dim2)">粗线 = 当前方案</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <details>
+    <summary>展开当前方案的 10 年逐年测算明细</summary>
+    <div class="tw"><table style="min-width:900px">
+      <thead><tr><th style="width:120px">年份</th>
+        <th>总收入</th><th>电费收入</th><th>服务费收入</th><th>营业成本</th>
+        <th>其中：分成</th><th>利润总额</th><th>所得税</th><th>净利润</th>
+        <th>税后净现金流</th><th>累计税后现金流</th></tr></thead>
+      <tbody id="tb2"></tbody>
+    </table></div>
+    <div class="swipe">⇄ 左右滑动查看完整表格</div>
+    <div style="font-size:11.5px;color:var(--dim);margin-top:12px;font-weight:600">单位：万元</div>
+  </details>
+</div>
+
+<div class="foot">
+  <b>固定假设（与《方案一.xlsx》完全一致）：</b>
+  单瓦造价 0.8 元/W ｜ 电价 0.68 元/度 ｜ 电损率 3% ｜ 全年充电天数 330 天 ｜ 运营费率 5%（按服务费收入）｜
+  质保费率 2%（第 3 年起计提）｜ 折旧 10 年直线法（投资额除以 1.13 后摊销）｜ 所得税率 25% ｜ 场地租金 0。<br>
+  <b>服务费单价：</b>起始 0.8 元/度，每 3 年下调 5%（第 4、7、10 年各降一档）。
+  <b>充电量口径：</b>重卡桩为双枪，重卡年充电量 = 单枪日均 × 车位数 × 2 × 330；小车年充电量 = 单枪日均 × 车位数 × 330。<br>
+  <b>容量联动：</b>每个重卡车位配 1 台 400kW 桩，每 10 个小车车位配 1 套 600kW 充电堆，总容量 = 400×重卡车位 + 600×(小车车位/10)。
+  <b>IRR / 回收期：</b>基于第 0 年投资支出与第 1–10 年税后净现金流计算，回收期采用线性插值法。
+</div>
+
+</div>
+
+<script>
+const F={price0:0.8,costW:0.8,elec:0.68,days:330,opex:0.05,war:0.02,loss:0.03,tax:0.25,rent:0};
+const W=1e4;
+const PLAN={1:'方案一',2:'方案二',3:'方案三'};
+const CLR={1:'#0052cc',2:'#c2410c',3:'#047857'};
+
+function calc(truckLots,share,tKwh,cKwh){
+  const carLots=(4-truckLots)*10;
+  const cap=400*truckLots+600*(carLots/10);
+  const invest=cap*F.costW*1000;
+  const dep=F.costW*cap*1000/1.13/10;
+  const p=[]; let v=F.price0;
+  for(let y=1;y<=10;y++){ if(y===4||y===7||y===10) v*=0.95; p.push(v); }
+  const tE=tKwh*truckLots*2*F.days, cE=cKwh*carLots*F.days, totE=tE+cE;
+  const rows=[]; let cum=-invest; const cums=[-invest];
+  for(let y=1;y<=10;y++){
+    const fee=p[y-1]*(tE+cE), eInc=totE*F.elec, rev=eInc+fee;
+    const cShare=fee*share, cOp=fee*F.opex, cWar=y<=2?0:fee*F.war;
+    const cost=eInc*(1+F.loss)+cShare+F.rent*12+cOp+cWar+dep;
+    const ebt=rev-cost, tax=Math.max(0,ebt)*F.tax, net=ebt-tax, cf=net+dep;
+    cum+=cf; cums.push(cum);
+    rows.push({y,rev,eInc,fee,cost,cShare,ebt,tax,net,cf,cum});
+  }
+  const flows=[-invest,...rows.map(r=>r.cf)];
+  const npv=r=>flows.reduce((s,f,i)=>s+f/Math.pow(1+r,i),0);
+  let irr=null,lo=-0.9,hi=20;
+  if(npv(lo)*npv(hi)<0){ for(let i=0;i<300;i++){const m=(lo+hi)/2; if(npv(lo)*npv(m)<=0)hi=m; else lo=m;} irr=(lo+hi)/2; }
+  let pb=null,lastNeg=-1;
+  for(let i=1;i<=10;i++) if(cums[i]<0) lastNeg=i;
+  if(lastNeg===-1) pb=0;
+  else if(lastNeg<10) pb=lastNeg+Math.abs(cums[lastNeg])/(cums[lastNeg+1]-cums[lastNeg]);
+  return {truckLots,carLots,cap,invest,dep,rows,cums,irr,pb,totE,util:totE/365/24/cap,
+    avgNet:rows.reduce((s,r)=>s+r.net,0)/10, avgCf:rows.reduce((s,r)=>s+r.cf,0)/10, endCum:cums[10]};
+}
+
+const $=id=>document.getElementById(id);
+const S={t:$('s_t'),s:$('s_s'),tk:$('s_tk'),ck:$('s_ck')};
+const fmt=(n,d=1)=>n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pbTxt=p=>p===null?'>10':fmt(p,2);
+
+function render(){
+  FS = window.innerWidth<820 ? 1.55 : 1;
+  const t=+S.t.value, sh=+S.s.value/100, tk=+S.tk.value, ck=+S.ck.value;
+  $('v_t').textContent=t; $('v_s').textContent=+S.s.value;
+  $('v_tk').textContent=tk; $('v_ck').textContent=ck;
+
+  const all=[1,2,3].map(x=>calc(x,sh,tk,ck));
+  const m=all[t-1], others=all.filter(a=>a.truckLots!==t);
+  const dflt=(sh===0.4&&tk===300&&ck===120);
+  $('tag').textContent=PLAN[t]+(dflt?'':'（参数已调整）');
+
+  $('d_car').innerHTML=`${m.carLots}<small>个</small>`;
+  $('d_cap').innerHTML=`${m.cap}<small>KVA</small>`;
+  $('d_inv').innerHTML=`${fmt(m.invest/W,0)}<small>万元</small>`;
+  $('d_e').innerHTML=`${fmt(m.totE/W,1)} <span style="font-size:12px;color:var(--dim)">万度</span>`;
+  $('d_rev').innerHTML=`${fmt(m.rows[0].rev/W,1)} <span style="font-size:12px;color:var(--dim)">万元</span>`;
+  $('d_util').innerHTML=`${fmt(m.util*100,1)} <span style="font-size:12px;color:var(--dim)">%</span>`;
+
+  $('k_irr').textContent=m.irr===null?'—':fmt(m.irr*100,1);
+  $('k_pb').textContent=pbTxt(m.pb);
+  $('k_np').textContent=fmt(m.avgNet/W,1);
+  $('k_cf').textContent=fmt(m.avgCf/W,1);
+  const cmp=(f)=>others.map(o=>`<span>${PLAN[o.truckLots]} <b>${f(o)}</b></span>`).join('');
+  $('c_irr').innerHTML=cmp(o=>o.irr===null?'—':fmt(o.irr*100,1)+'%');
+  $('c_pb').innerHTML =cmp(o=>pbTxt(o.pb)+'年');
+  $('c_np').innerHTML =cmp(o=>fmt(o.avgNet/W,1)+'万');
+  $('c_cf').innerHTML =cmp(o=>fmt(o.avgCf/W,1)+'万');
+
+  const best={irr:Math.max(...all.map(a=>a.irr??-9)),np:Math.max(...all.map(a=>a.avgNet)),
+              cf:Math.max(...all.map(a=>a.avgCf)),pb:Math.min(...all.map(a=>a.pb??99))};
+  $('tb').innerHTML=all.map(a=>`<tr class="${a.truckLots===t?'cur':''}">
+      <td><span class="dot" style="background:${CLR[a.truckLots]}"></span>${PLAN[a.truckLots]}　重卡 ${a.truckLots} → 小车 ${a.carLots}${a.irr===best.irr?'<span class="win">最优</span>':''}</td>
+      <td class="mut">${a.cap}</td><td class="mut">${fmt(a.invest/W,0)}</td>
+      <td class="${a.irr===best.irr?'n1':''}">${a.irr===null?'—':fmt(a.irr*100,1)+'%'}</td>
+      <td class="${a.pb===best.pb?'n1':''}">${pbTxt(a.pb)}</td>
+      <td class="${a.avgNet===best.np?'n1':(a.avgNet<0?'neg':'')}">${fmt(a.avgNet/W,1)}</td>
+      <td class="${a.avgCf===best.cf?'n1':(a.avgCf<0?'neg':'')}">${fmt(a.avgCf/W,1)}</td>
+      <td class="mut">${fmt(a.endCum/W,0)}</td></tr>`).join('');
+
+  $('tb2').innerHTML=`<tr><td class="mut">第 0 年（投资）</td><td colspan="9" class="mut" style="text-align:left">初始投资支出</td><td class="neg">${fmt(-m.invest/W,1)}</td></tr>`
+    + m.rows.map(r=>`<tr>
+      <td>第 ${r.y} 年</td><td>${fmt(r.rev/W)}</td><td class="mut">${fmt(r.eInc/W)}</td><td class="mut">${fmt(r.fee/W)}</td>
+      <td>${fmt(r.cost/W)}</td><td class="mut">${fmt(r.cShare/W)}</td>
+      <td class="${r.ebt<0?'neg':''}">${fmt(r.ebt/W)}</td><td class="mut">${fmt(r.tax/W)}</td>
+      <td class="${r.net<0?'neg':''}">${fmt(r.net/W)}</td><td>${fmt(r.cf/W)}</td>
+      <td class="${r.cum<0?'neg':'n1'}">${fmt(r.cum/W)}</td></tr>`).join('');
+
+  chart1(all,t); chart2(all,t);
+}
+
+/* ============ 图表 ============ */
+const NS='http://www.w3.org/2000/svg';
+let FS=1;  // 手机端 SVG 文字放大系数（viewBox 被压缩后保证可读）
+function el(n,a,txt){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;}
+function tx(x,y,t,anchor='middle',fill='#4a5567',size=11,weight=600){
+  return el('text',{x,y,'text-anchor':anchor,fill,'font-size':size*FS,'font-weight':weight,'font-family':'inherit'},t);}
+
+function chart1(all,cur){
+  const s=$('c1'); s.innerHTML='';
+  const m=FS>1;
+  const L=m?62:46, R=m?60:46, T=m?26:18, B=m?58:36, ph=196, H=T+ph+B, pw=560-L-R;
+  s.setAttribute('viewBox',`0 0 560 ${H}`);
+  const irrs=all.map(a=>(a.irr??0)*100), pbs=all.map(a=>a.pb===null?12:a.pb);
+  const maxI=Math.max(10,Math.ceil(Math.max(...irrs,0)/10)*10);
+  const maxP=Math.max(4,Math.ceil(Math.max(...pbs)));
+  for(let i=0;i<=4;i++){
+    const y=T+ph-ph*i/4;
+    s.appendChild(el('line',{x1:L,y1:y,x2:L+pw,y2:y,stroke:i===0?'#0a1020':'#dde3ed','stroke-width':i===0?2:1.5}));
+    s.appendChild(tx(L-9,y+4,(maxI*i/4).toFixed(0)+'%','end','#047857'));
+    s.appendChild(tx(L+pw+9,y+4,(maxP*i/4).toFixed(1),'start','#b45309'));
+  }
+  const bw=pw/all.length;
+  all.forEach((a,i)=>{
+    const cx=L+bw*i+bw/2, h=ph*Math.max(0,irrs[i])/maxI, w=bw*0.44, on=a.truckLots===cur;
+    s.appendChild(el('rect',{x:cx-w/2,y:T+ph-h,width:w,height:Math.max(h,1.5),rx:2,
+      fill:on?'#047857':'#a7cfbf',stroke:on?'#025034':'none','stroke-width':on?2:0}));
+    s.appendChild(tx(cx,T+ph-h-8*FS,irrs[i].toFixed(1)+'%','middle','#047857',13,800));
+    s.appendChild(tx(cx,T+ph+15*FS+5,PLAN[a.truckLots],'middle',on?'#0a1020':'#78849a',12,on?800:600));
+    s.appendChild(tx(cx,T+ph+29*FS+5,`重卡${a.truckLots} / 小车${a.carLots}`,'middle','#78849a',10,600));
+  });
+  const pts=all.map((a,i)=>[L+bw*i+bw/2,T+ph-ph*pbs[i]/maxP]);
+  s.appendChild(el('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#b45309','stroke-width':2.6}));
+  pts.forEach((p,i)=>{
+    const on=all[i].truckLots===cur;
+    s.appendChild(el('circle',{cx:p[0],cy:p[1],r:on?6:4.5,fill:'#fff',stroke:'#b45309','stroke-width':on?3.5:2.5}));
+    s.appendChild(tx(p[0],p[1]-11*FS,all[i].pb===null?'>10':all[i].pb.toFixed(2),'middle','#b45309',12,800));
+  });
+}
+
+function chart2(all,cur){
+  const s=$('c2'); s.innerHTML='';
+  const mo=FS>1;
+  const L=mo?70:54, R=mo?24:18, T=mo?26:18, B=mo?44:32, ph=200, H=T+ph+B, pw=560-L-R;
+  s.setAttribute('viewBox',`0 0 560 ${H}`);
+  const allv=all.flatMap(a=>a.cums);
+  const step=W*50;
+  const hi=Math.ceil(Math.max(...allv)/step)*step, lo=Math.floor(Math.min(...allv)/step)*step;
+  const Y=v=>T+ph-ph*(v-lo)/(hi-lo||1), X=i=>L+pw*i/10;
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4,y=Y(v);
+    s.appendChild(el('line',{x1:L,y1:y,x2:L+pw,y2:y,stroke:'#dde3ed','stroke-width':1.5}));
+    s.appendChild(tx(L-9,y+4,(v/W).toFixed(0),'end'));
+  }
+  s.appendChild(el('line',{x1:L,y1:Y(0),x2:L+pw,y2:Y(0),stroke:'#0a1020','stroke-width':2}));
+  for(let i=0;i<=10;i+=2) s.appendChild(tx(X(i),T+ph+16*FS+4,'第'+i+'年','middle'));
+  all.forEach(a=>{
+    const on=a.truckLots===cur;
+    s.appendChild(el('polyline',{points:a.cums.map((v,i)=>X(i)+','+Y(v)).join(' '),fill:'none',
+      stroke:CLR[a.truckLots],'stroke-width':on?4:2,opacity:on?1:.5,'stroke-linejoin':'round',
+      'stroke-dasharray':on?'':'6 4'}));
+    if(on) a.cums.forEach((v,i)=>s.appendChild(el('circle',{cx:X(i),cy:Y(v),r:3.6,fill:CLR[a.truckLots]})));
+  });
+  const m=all[cur-1];
+  if(m.pb!==null&&m.pb>0){
+    const px=X(m.pb), lw=52*FS;
+    s.appendChild(el('line',{x1:px,y1:T,x2:px,y2:T+ph,stroke:'#b45309','stroke-width':2,'stroke-dasharray':'5 4'}));
+    s.appendChild(tx(Math.min(px+7,L+pw-lw),T+11*FS,'回收 '+m.pb.toFixed(2)+'年','start','#b45309',11.5,800));
+  }
+  s.appendChild(tx(L-9,T-6,'万元','end','#78849a',10));
+}
+
+function reset(){S.t.value=1;S.s.value=40;S.tk.value=300;S.ck.value=120;render();}
+Object.values(S).forEach(x=>x.addEventListener('input',render));
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,120)});
+addEventListener('orientationchange',()=>setTimeout(render,250));
+render();
+</script>
+</body>
+</html>
