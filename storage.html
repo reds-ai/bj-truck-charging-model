@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高速服务区两站配储 · 5MWh 储能动态测算</title>
+<style>
+:root{
+  --bg:#eef1f6; --panel:#fff; --tint:#f4f6fa; --line:#c9d2e0; --line2:#e3e8f0;
+  --txt:#0a1020; --dim:#4a5567; --dim2:#78849a;
+  --p1:#0052cc; --p2:#c2410c; --p3:#047857; --p4:#6d28d9;
+  --k1:#047857; --k2:#b45309; --k3:#0052cc; --k4:#6d28d9;
+  --neg:#c0261a; --warn:#b45309; --ok:#047857;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  padding:20px 24px 56px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1480px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  margin-bottom:16px;padding-bottom:14px;border-bottom:3px solid var(--txt)}
+h1{font-size:24px;font-weight:800}
+h1 span{color:var(--p1)}
+.sub{color:var(--dim);font-size:12.5px;margin-top:6px;font-weight:500}
+.badge{color:#fff;border-radius:6px;padding:8px 15px;font-size:12.5px;font-weight:600;background:var(--txt)}
+.badge b{color:#ffd75e;font-weight:800}
+.btn{background:var(--panel);border:2px solid var(--line);color:var(--txt);border-radius:6px;
+  padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:var(--p1);color:var(--p1)}
+
+.card{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h2{font-size:12.5px;font-weight:800;letter-spacing:1px;margin-bottom:14px;
+  padding-bottom:9px;border-bottom:2px solid var(--line2);display:flex;align-items:center;gap:8px}
+.card h2::before{content:'';width:5px;height:14px;background:var(--p1);border-radius:1px}
+.card h2 small{margin-left:auto;font-weight:600;color:var(--dim2);letter-spacing:0;font-size:10.5px}
+
+.top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.ctrl{margin-bottom:15px}
+.ctrl:last-child{margin-bottom:2px}
+.clab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:8px}
+.clab .n{font-size:13px;font-weight:700}
+.clab .n em{font-style:normal;color:var(--dim2);font-size:10.5px;margin-left:5px;font-weight:500}
+.clab .v{font-size:17px;font-weight:800;color:var(--p1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.clab .v u{text-decoration:none;font-size:11px;color:var(--dim);font-weight:600;margin-left:2px}
+input[type=range]{-webkit-appearance:none;width:100%;height:7px;border-radius:5px;background:#d5dce8;
+  outline:none;border:1px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:var(--p1);cursor:pointer;border:4px solid #fff;box-shadow:0 0 0 2px var(--p1),0 2px 5px rgba(0,0,0,.25)}
+.ticks{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--dim2);font-weight:600}
+.seg{display:flex;gap:5px}
+.seg button{flex:1;background:var(--tint);border:2px solid var(--line2);border-radius:6px;padding:7px 3px;
+  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--dim)}
+.seg button.on{background:var(--p1);border-color:var(--p1);color:#fff}
+
+.derived{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px;padding-top:12px;border-top:2px dashed var(--line)}
+.dv{background:var(--tint);border:1.5px solid var(--line2);border-radius:7px;padding:8px 7px;text-align:center}
+.dv .k{font-size:10px;color:var(--dim);margin-bottom:3px;font-weight:600;line-height:1.25}
+.dv .n{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.dv .n small{font-size:9.5px;color:var(--dim);font-weight:600;margin-left:2px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.kpi{border:2px solid var(--k);border-radius:9px;padding:13px 15px}
+.kpi .t{font-size:12px;font-weight:700;color:var(--k);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.kpi .t i{width:8px;height:8px;background:var(--k);border-radius:50%}
+.kpi .big{font-size:36px;font-weight:800;line-height:1;color:var(--k);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.kpi .big small{font-size:15px;font-weight:700;margin-left:3px}
+.kpi .cmp{font-size:11px;color:var(--dim);margin-top:9px;padding-top:8px;border-top:1.5px dashed var(--line2);font-weight:600}
+.kpi .cmp b{font-weight:800;color:var(--txt)}
+
+.abar{height:28px;background:var(--tint);border:2px solid var(--line);border-radius:7px;
+  position:relative;overflow:hidden;margin-top:8px}
+.abar .fill{position:absolute;left:0;top:0;bottom:0;opacity:.9}
+.abar .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.note{font-size:11px;font-weight:600;line-height:1.6;margin-top:8px;padding:8px 10px;border-radius:6px}
+.note.bad{background:#fdeceb;border-left:4px solid var(--neg);color:#7d1a12}
+.note.warn{background:#fdf3e3;border-left:4px solid var(--warn);color:#7a4406}
+.note.good{background:#e7f5f0;border-left:4px solid var(--ok);color:#04503a}
+
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th{font-weight:800;font-size:11px;text-align:right;padding:9px;background:var(--txt);color:#fff;white-space:nowrap;line-height:1.35}
+th:first-child,td:first-child{text-align:left}
+td{padding:11px 9px;border-bottom:1.5px solid var(--line2);text-align:right;white-space:nowrap;font-weight:600}
+tbody tr.cur td{background:#e8f0ff;font-weight:800}
+tbody tr.cur td:first-child{box-shadow:inset 5px 0 0 var(--p1)}
+.n1{color:#047857;font-weight:800}.neg{color:var(--neg);font-weight:800}.mut{color:var(--dim);font-weight:600}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px}
+.tag{display:inline-block;font-size:9.5px;font-weight:800;border-radius:3px;padding:2px 5px;margin-left:6px;vertical-align:1.5px}
+.tag.g{background:#047857;color:#fff}.tag.r{background:var(--neg);color:#fff}.tag.b{background:#0052cc;color:#fff}
+.sn{font-size:10.5px;color:var(--dim2);font-weight:600;margin-top:2px}
+
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.ctitle{font-size:12.5px;font-weight:800;margin-bottom:9px;padding-left:9px;border-left:4px solid var(--p1)}
+svg{width:100%;height:auto;display:block}
+.lg{display:flex;gap:15px;font-size:11.5px;color:var(--dim);margin-top:8px;justify-content:center;flex-wrap:wrap;font-weight:600}
+.lg i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.foot{margin-top:16px;font-size:11.5px;color:var(--dim);line-height:1.9;
+  background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:15px 19px;font-weight:500}
+.foot b{color:var(--txt);font-weight:800}
+details summary{cursor:pointer;font-size:13px;font-weight:700;list-style:none;outline:none;display:flex;align-items:center;gap:7px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'▸';color:var(--p1);font-size:15px;transition:.15s}
+details[open] summary::before{transform:rotate(90deg)}
+details[open] summary{margin-bottom:15px}
+.swipe{display:none;font-size:11px;color:var(--dim2);font-weight:600;margin-top:8px;text-align:center}
+@media(max-width:1200px){.top{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.top,.charts{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:820px){
+  body{padding:13px 11px 36px} h1{font-size:18px} .card{padding:14px 13px}
+  .clab .n em{display:none} .kpi .big{font-size:29px} .kpis{gap:9px}
+  .tw table{min-width:680px} .swipe{display:block}
+  th{font-size:10.5px;padding:8px 6px} td{padding:10px 6px;font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>高速服务区两站配储 · <span>5MWh 储能动态测算</span></h1>
+    <div class="sub">两侧服务区各建 1 座充电站（方案一），中间配 1 套储能 · 张家口电价 · 每天一充一放 · 15 年周期</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="badge" id="badge">结论：<b id="verdict">—</b></div>
+    <button class="btn" onclick="reset()">恢复默认</button>
+  </div>
+</header>
+
+<div class="top">
+  <!-- 储能与投资 -->
+  <div class="card">
+    <h2>储能与投资</h2>
+    <div class="ctrl">
+      <div class="clab"><span class="n">储能容量</span><span class="v"><span id="v_cap">5.0</span><u>MWh</u></span></div>
+      <input type="range" id="s_cap" min="1" max="15" step="0.5" value="5">
+      <div class="ticks"><span>1</span><span>5</span><span>10</span><span>15</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">EPC 单价<em>2026年7月中标 0.75~1.14</em></span><span class="v"><span id="v_epc">0.96</span><u>元/Wh</u></span></div>
+      <input type="range" id="s_epc" min="0.6" max="1.2" step="0.01" value="0.96">
+      <div class="ticks"><span>0.60</span><span>0.80</span><span>1.00</span><span>1.20</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">年运行天数<em>= 年充电次数</em></span><span class="v"><span id="v_days">336</span><u>天</u></span></div>
+      <input type="range" id="s_days" min="280" max="365" step="1" value="336">
+      <div class="ticks"><span>280</span><span>310</span><span>340</span><span>365</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">尖峰放电天数<em>其余按高峰价放</em></span><span class="v"><span id="v_njf">168</span><u>天/年</u></span></div>
+      <input type="range" id="s_njf" min="0" max="336" step="6" value="168">
+      <div class="ticks"><span>0</span><span>112</span><span>224</span><span>336</span></div>
+    </div>
+    <div class="derived">
+      <div class="dv"><div class="k">总投资</div><div class="n" id="d_inv">—</div></div>
+      <div class="dv"><div class="k">高峰放电天数</div><div class="n" id="d_ngf">—</div></div>
+    </div>
+  </div>
+
+  <!-- 电价 -->
+  <div class="card">
+    <h2>张家口分时电价<small>元/kWh</small></h2>
+    <div class="ctrl">
+      <div class="clab"><span class="n">尖峰电价</span><span class="v"><span id="v_pjf">0.99</span></span></div>
+      <input type="range" id="s_pjf" min="0.60" max="1.40" step="0.01" value="0.99">
+      <div class="ticks"><span>0.60</span><span>0.87</span><span>1.13</span><span>1.40</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">高峰电价</span><span class="v"><span id="v_pgf">0.85</span></span></div>
+      <input type="range" id="s_pgf" min="0.50" max="1.20" step="0.01" value="0.85">
+      <div class="ticks"><span>0.50</span><span>0.73</span><span>0.97</span><span>1.20</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">谷段电价<em>充电用</em></span><span class="v"><span id="v_pg">0.29</span></span></div>
+      <input type="range" id="s_pg" min="0.15" max="0.55" step="0.01" value="0.29">
+      <div class="ticks"><span>0.15</span><span>0.28</span><span>0.42</span><span>0.55</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">平段电价<em>充电站购电价</em></span><span class="v"><span id="v_ppd">0.57</span></span></div>
+      <input type="range" id="s_ppd" min="0.35" max="0.90" step="0.01" value="0.57">
+      <div class="ticks"><span>0.35</span><span>0.53</span><span>0.72</span><span>0.90</span></div>
+    </div>
+    <div class="derived">
+      <div class="dv"><div class="k">高峰－谷 价差</div><div class="n" id="d_s1">—</div></div>
+      <div class="dv"><div class="k">尖峰－谷 价差</div><div class="n" id="d_s2">—</div></div>
+    </div>
+  </div>
+
+  <!-- 充电站与消纳 -->
+  <div class="card">
+    <h2>充电站与消纳能力<small>决定储能能放多少</small></h2>
+    <div class="ctrl">
+      <div class="clab"><span class="n">单站方案</span><span class="v" style="font-size:12.5px" id="v_plan">方案一</span></div>
+      <div class="seg" id="seg_plan">
+        <button data-v="1" class="on">方案一</button><button data-v="2">方案二</button><button data-v="3">方案三</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">重卡单枪日均</span><span class="v"><span id="v_tk">300</span><u>度</u></span></div>
+      <input type="range" id="s_tk" min="100" max="1300" step="25" value="300">
+      <div class="ticks"><span>100</span><span>500</span><span>900</span><span>1300</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">小车单枪日均</span><span class="v"><span id="v_ck">120</span><u>度</u></span></div>
+      <input type="range" id="s_ck" min="20" max="300" step="5" value="120">
+      <div class="ticks"><span>20</span><span>110</span><span>200</span><span>300</span></div>
+    </div>
+    <div class="ctrl">
+      <div class="clab"><span class="n">放电时段负荷占比<em>该时段用电 ÷ 全天</em></span><span class="v"><span id="v_ps">45</span><u>%</u></span></div>
+      <input type="range" id="s_ps" min="15" max="85" step="5" value="45">
+      <div class="ticks"><span>15%</span><span>38%</span><span>62%</span><span>85%</span></div>
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:2px dashed var(--line)">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700">
+        <span>满发可放 <b id="a_full">—</b> 度/次</span><span>两站可消纳 <b id="a_abs">—</b> 度/天</span>
+      </div>
+      <div class="abar"><div class="fill" id="a_fill"></div><div class="lbl" id="a_lbl">—</div></div>
+      <div class="note" id="a_note"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>储能项目核心指标<small>15 年周期 · 现金流 = 税后净利润 + 折旧</small></h2>
+  <div class="kpis">
+    <div class="kpi" style="--k:var(--k1)"><div class="t"><i></i>内部收益率 IRR</div>
+      <div class="big"><span id="k_irr">—</span><small>%</small></div>
+      <div class="cmp">满发可达 <b id="c_irr">—</b></div></div>
+    <div class="kpi" style="--k:var(--k2)"><div class="t"><i></i>投资回收期</div>
+      <div class="big"><span id="k_pb">—</span><small>年</small></div>
+      <div class="cmp">满发可达 <b id="c_pb">—</b></div></div>
+    <div class="kpi" style="--k:var(--k3)"><div class="t"><i></i>平均每年净利润</div>
+      <div class="big"><span id="k_np">—</span><small>万元</small></div>
+      <div class="cmp">年均调峰收益 <b id="c_np">—</b></div></div>
+    <div class="kpi" style="--k:var(--k4)"><div class="t"><i></i>平均每年净现金流</div>
+      <div class="big"><span id="k_cf">—</span><small>万元</small></div>
+      <div class="cmp">15年累计 <b id="c_cf">—</b></div></div>
+  </div>
+  <div class="charts">
+    <div>
+      <div class="ctitle">IRR 随储能容量变化（消纳能力决定拐点）</div>
+      <svg id="c1" viewBox="0 0 560 260"></svg>
+      <div class="lg"><span><i style="background:var(--p3)"></i>IRR</span><span><i style="background:var(--p2)"></i>当前容量</span><span><i style="background:var(--dim2)"></i>匹配容量</span></div>
+    </div>
+    <div>
+      <div class="ctitle">15 年累计税后净现金流</div>
+      <svg id="c2" viewBox="0 0 560 260"></svg>
+      <div class="lg"><span><i style="background:var(--p1)"></i>当前设置</span><span><i style="background:var(--p3)"></i>按匹配容量优化</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>情景对比<small>同一套储能，只改乐观/保守假设</small></h2>
+  <div class="tw"><table>
+    <thead><tr><th style="width:250px">情景</th><th>EPC<br>元/Wh</th><th>尖峰天数</th><th>消纳占比</th>
+      <th>投资<br>万元</th><th>利用率</th><th>IRR</th><th>回收期<br>年</th><th>年均净利润<br>万元</th></tr></thead>
+    <tbody id="tb_sc"></tbody>
+  </table></div>
+  <div class="swipe">⇄ 左右滑动查看完整表格</div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>整体项目视图<small>两座充电站 + 储能，统一 15 年口径</small></h2>
+  <div class="tw"><table>
+    <thead><tr><th style="width:190px">分项</th><th>投资<br>万元</th><th>IRR</th><th>回收期<br>年</th>
+      <th>年均净利润<br>万元</th><th>年均税后现金流<br>万元</th><th>15年累计现金流<br>万元</th></tr></thead>
+    <tbody id="tb_all"></tbody>
+  </table></div>
+  <div class="swipe">⇄ 左右滑动查看完整表格</div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <details>
+    <summary>展开储能 15 年逐年测算明细</summary>
+    <div class="tw"><table style="min-width:980px">
+      <thead><tr><th style="width:96px">年份</th><th>可用容量<br>kWh</th><th>实际放电<br>度/次</th><th>利用率</th>
+        <th>放电收入</th><th>充电成本</th><th>运维</th><th>调峰收益</th><th>折旧</th>
+        <th>利润总额</th><th>所得税</th><th>净利润</th><th>税后现金流</th><th>累计现金流</th></tr></thead>
+      <tbody id="tb_yr"></tbody>
+    </table></div>
+    <div class="swipe">⇄ 左右滑动查看完整表格</div>
+    <div style="font-size:11.5px;color:var(--dim);margin-top:11px;font-weight:600">金额单位：万元</div>
+  </details>
+</div>
+
+<div class="foot" id="foot"></div>
+</div>
+
+<script>
+/* ===== 固定假设（沿用《副本储能测算表（北京高速）》）===== */
+const F={dod:0.90, etaC:0.94, etaD:0.94, decay:0.02, years:15, depYears:10,
+         omRate:0.05, tax:0.25,
+         stationCostW:0.8, elecLoss:0.03, opex:0.05, warranty:0.02, share:0.40, fee0:0.8,
+         stationDays:330};
+const W=1e4;
+
+/* 储能：可用容量 = 额定×(1-2%×年 +1%)，与原表 =B4*(B11+1%) 一致 */
+function ess(capMWh, epc, pjf, pgf, pg, days, njf, absorb){
+  const cap=capMWh*1000, ngf=Math.max(0,days-njf);
+  const invest=cap*1000*epc;
+  const dep=invest/F.depYears;
+  const rows=[]; let cum=-invest; const cums=[-invest];
+  for(let y=1;y<=F.years;y++){
+    const avail=cap*((1-F.decay*y)+0.01);
+    const full=avail*F.dod*F.etaD;
+    const dis=(absorb!=null)?Math.min(full,absorb):full;
+    const util=full>0?dis/full:0;
+    const chg=(dis/F.etaD)/F.etaC;
+    const rev=dis*(njf*pjf+ngf*pgf);
+    const cost=chg*days*pg;
+    const om=(rev-cost)*F.omRate;
+    const gross=rev-cost-om;
+    const dp=(y<=F.depYears)?dep:0;
+    const ebt=gross-dp;
+    const t=Math.max(0,ebt)*F.tax;
+    const net=ebt-t;
+    const cf=net+dp;                      // 现金流 = 税后净利润 + 折旧
+    cum+=cf; cums.push(cum);
+    rows.push({y,avail,full,dis,util,chg,rev,cost,om,gross,dep:dp,ebt,tax:t,net,cf,cum});
+  }
+  return finish({invest,rows,cums,cap,
+    matched:(absorb!=null)?absorb/(F.dod*F.etaD):null});
+}
+
+/* 单座充电站（原充电站模型，15年口径：折旧仅前10年） */
+function station(plan,tk,ck,elec){
+  const car=(4-plan)*10, capkw=400*plan+600*(car/10);
+  const invest=capkw*F.stationCostW*1000, dep=F.stationCostW*capkw*1000/1.13/10;
+  const tE=tk*plan*2*F.stationDays, cE=ck*car*F.stationDays, totE=tE+cE;
+  const p=[]; let v=F.fee0;
+  for(let y=1;y<=15;y++){ if(y>1&&y%3===1) v*=0.95; p.push(v); }
+  const rows=[]; let cum=-invest; const cums=[-invest];
+  for(let y=1;y<=15;y++){
+    const fee=p[y-1]*totE, eInc=totE*elec, rev=eInc+fee;
+    const d=(y<=10)?dep:0;
+    const cost=eInc*(1+F.elecLoss)+fee*F.share+fee*F.opex+(y<=2?0:fee*F.warranty)+d;
+    const ebt=rev-cost, t=Math.max(0,ebt)*F.tax, net=ebt-t, cf=net+d;
+    cum+=cf; cums.push(cum);
+    rows.push({y,rev,cost,ebt,net,cf,cum});
+  }
+  return finish({invest,rows,cums,totE,dayE:totE/F.stationDays});
+}
+
+function finish(o){
+  const flows=[-o.invest,...o.rows.map(r=>r.cf)];
+  const npv=r=>flows.reduce((s,f,i)=>s+f/Math.pow(1+r,i),0);
+  let irr=null,lo=-0.95,hi=10;
+  if(npv(lo)*npv(hi)<0){for(let i=0;i<400;i++){const m=(lo+hi)/2; if(npv(lo)*npv(m)<=0)hi=m; else lo=m;} irr=(lo+hi)/2;}
+  let pb=null,last=-1;
+  for(let i=1;i<o.cums.length;i++) if(o.cums[i]<0) last=i;
+  if(last===-1) pb=0; else if(last<o.cums.length-1) pb=last+Math.abs(o.cums[last])/(o.cums[last+1]-o.cums[last]);
+  const n=o.rows.length;
+  return Object.assign(o,{irr,pb,
+    avgNet:o.rows.reduce((s,r)=>s+r.net,0)/n,
+    avgCf:o.rows.reduce((s,r)=>s+r.cf,0)/n,
+    avgGross:o.rows.reduce((s,r)=>s+(r.gross||0),0)/n,
+    util1:o.rows[0].util, endCum:o.cums[o.cums.length-1]});
+}
+function combine(a,b){
+  const n=Math.max(a.rows.length,b.rows.length), rows=[];
+  let cum=-(a.invest+b.invest); const cums=[cum];
+  for(let y=0;y<n;y++){
+    const cf=(a.rows[y]?a.rows[y].cf:0)+(b.rows[y]?b.rows[y].cf:0);
+    const net=(a.rows[y]?a.rows[y].net:0)+(b.rows[y]?b.rows[y].net:0);
+    cum+=cf; cums.push(cum); rows.push({y:y+1,cf,net,cum});
+  }
+  return finish({invest:a.invest+b.invest,rows,cums});
+}
+
+/* ===== 渲染 ===== */
+const $=id=>document.getElementById(id);
+const S={cap:$('s_cap'),epc:$('s_epc'),days:$('s_days'),njf:$('s_njf'),
+         pjf:$('s_pjf'),pgf:$('s_pgf'),pg:$('s_pg'),ppd:$('s_ppd'),
+         tk:$('s_tk'),ck:$('s_ck'),ps:$('s_ps')};
+let PLAN=1, FS=1;
+const fmt=(n,d=1)=>n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pbT=p=>p===null?'>15':fmt(p,2);
+const irrT=r=>r===null?'—':fmt(r*100,2)+'%';
+
+function render(){
+  FS=window.innerWidth<820?1.5:1;
+  const capM=+S.cap.value, epc=+S.epc.value, days=+S.days.value, njf=Math.min(+S.njf.value,days);
+  const pjf=+S.pjf.value, pgf=+S.pgf.value, pg=+S.pg.value, ppd=+S.ppd.value;
+  const tk=+S.tk.value, ck=+S.ck.value, ps=+S.ps.value/100;
+  $('v_cap').textContent=fmt(capM,1); $('v_epc').textContent=fmt(epc,2);
+  $('v_days').textContent=days; $('v_njf').textContent=njf;
+  $('v_pjf').textContent=fmt(pjf,2); $('v_pgf').textContent=fmt(pgf,2);
+  $('v_pg').textContent=fmt(pg,2); $('v_ppd').textContent=fmt(ppd,2);
+  $('v_tk').textContent=tk; $('v_ck').textContent=ck; $('v_ps').textContent=+S.ps.value;
+  $('v_plan').textContent='方案'+'一二三'[PLAN-1];
+
+  const st=station(PLAN,tk,ck,ppd);
+  const dayE=st.dayE*2, absorb=dayE*ps;
+  const m     = ess(capM,epc,pjf,pgf,pg,days,njf,absorb);
+  const mFull = ess(capM,epc,pjf,pgf,pg,days,njf,null);
+  const matched=absorb/(F.dod*F.etaD)/1000;              // MWh
+  const mMatch= ess(matched,epc,pjf,pgf,pg,days,njf,absorb);
+
+  $('d_inv').innerHTML=fmt(m.invest/W,0)+'<small>万元</small>';
+  $('d_ngf').innerHTML=(days-njf)+'<small>天</small>';
+  $('d_s1').innerHTML=fmt(pgf-pg,3)+'<small>元</small>';
+  $('d_s2').innerHTML=fmt(pjf-pg,3)+'<small>元</small>';
+
+  /* 消纳条 */
+  const full=m.rows[0].full, util=m.util1;
+  $('a_full').textContent=fmt(full,0); $('a_abs').textContent=fmt(absorb,0);
+  $('a_fill').style.width=Math.min(100,util*100)+'%';
+  $('a_fill').style.background=util>=0.98?'var(--ok)':util>=0.8?'var(--warn)':'var(--neg)';
+  $('a_lbl').textContent='储能利用率 '+fmt(util*100,0)+'%';
+  const nt=$('a_note');
+  if(util>=0.98){nt.className='note good';
+    nt.innerHTML=`容量与两站消纳能力匹配，储能可满发。两站日均 ${fmt(dayE,0)} 度，放电时段可用 ${fmt(absorb,0)} 度。`;}
+  else{nt.className=util>=0.8?'note warn':'note bad';
+    nt.innerHTML=`每天有 <b>${fmt(full-absorb,0)} 度</b>放不出去（${fmt((1-util)*100,0)}%），这部分投资不产生收益。
+      按当前两站业务量，匹配容量约 <b>${fmt(matched,1)} MWh</b>；
+      若要 ${fmt(capM,1)}MWh 满发，两站日均需 <b>${fmt(full/ps,0)} 度</b>（现为 ${fmt(dayE,0)} 度）。`;}
+
+  /* KPI */
+  $('k_irr').textContent=m.irr===null?'—':fmt(m.irr*100,2);
+  $('k_pb').textContent=pbT(m.pb);
+  $('k_np').textContent=fmt(m.avgNet/W,1);
+  $('k_cf').textContent=fmt(m.avgCf/W,1);
+  $('c_irr').textContent=irrT(mFull.irr);
+  $('c_pb').textContent=pbT(mFull.pb)+' 年';
+  $('c_np').textContent=fmt(m.avgGross/W,1)+' 万元';
+  $('c_cf').textContent=fmt(m.endCum/W,0)+' 万元';
+
+  const v=$('verdict'), bg=$('badge');
+  if(m.irr===null||m.irr<0.05){v.textContent='偏弱';bg.style.background='var(--neg)';}
+  else if(m.irr<0.08){v.textContent='临界';bg.style.background='var(--warn)';}
+  else {v.textContent='可行';bg.style.background='var(--ok)';}
+
+  /* 情景表 */
+  const SC=[
+    ['乐观：EPC0.80 · 尖峰168天 · 满发', 0.80,168,null,'tag b'],
+    ['当前设置', epc,njf,absorb,'tag g'],
+    ['中性：EPC0.96 · 尖峰60天 · 消纳45%', 0.96,60,dayE*0.45,''],
+    ['保守：EPC0.96 · 尖峰0天 · 消纳35%', 0.96,0,dayE*0.35,'']];
+  $('tb_sc').innerHTML=SC.map(([n,e,j,ab,tg],i)=>{
+    const x=ess(capM,e,pjf,pgf,pg,days,j,ab);
+    return `<tr class="${i===1?'cur':''}"><td>${n}${i===1?'<span class="tag g">当前</span>':''}</td>
+      <td class="mut">${fmt(e,2)}</td><td class="mut">${j}</td>
+      <td class="mut">${ab==null?'满发':fmt(ab/dayE*100,0)+'%'}</td>
+      <td class="mut">${fmt(x.invest/W,0)}</td>
+      <td class="${x.util1<0.98?'neg':'n1'}">${fmt(x.util1*100,0)}%</td>
+      <td class="${x.irr!==null&&x.irr>=0.08?'n1':(x.irr===null||x.irr<0.05?'neg':'')}">${irrT(x.irr)}</td>
+      <td>${pbT(x.pb)}</td><td>${fmt(x.avgNet/W,1)}</td></tr>`;}).join('');
+
+  /* 整体项目 */
+  const st2=finish({invest:st.invest*2, rows:st.rows.map(r=>({...r,cf:r.cf*2,net:r.net*2})),
+                    cums:st.cums.map(c=>c*2)});
+  const all=combine(st2,m);
+  $('tb_all').innerHTML=[['两座充电站（'+'方案'+'一二三'[PLAN-1]+'）',st2,'var(--p1)'],
+                         [fmt(capM,1)+'MWh 储能',m,'var(--p2)'],['合计',all,'var(--txt)']]
+    .map(([n,o,c],i)=>`<tr class="${i===2?'cur':''}">
+      <td><span class="dot" style="background:${c}"></span>${n}</td>
+      <td class="mut">${fmt(o.invest/W,0)}</td>
+      <td class="${o.irr!==null&&o.irr>=0.08?'n1':(o.irr===null||o.irr<0.05?'neg':'')}">${irrT(o.irr)}</td>
+      <td>${pbT(o.pb)}</td><td>${fmt(o.avgNet/W,1)}</td>
+      <td>${fmt(o.avgCf/W,1)}</td><td class="mut">${fmt(o.endCum/W,0)}</td></tr>`).join('');
+
+  /* 逐年 */
+  $('tb_yr').innerHTML=`<tr><td class="mut">第 0 年</td><td colspan="12" class="mut" style="text-align:left">初始投资</td><td class="neg">${fmt(-m.invest/W,1)}</td></tr>`
+    + m.rows.map(r=>`<tr><td>第 ${r.y} 年</td>
+      <td class="mut">${fmt(r.avail,0)}</td><td>${fmt(r.dis,0)}</td>
+      <td class="${r.util<0.98?'neg':'n1'}">${fmt(r.util*100,0)}%</td>
+      <td>${fmt(r.rev/W)}</td><td class="mut">${fmt(r.cost/W)}</td><td class="mut">${fmt(r.om/W)}</td>
+      <td><b>${fmt(r.gross/W)}</b></td><td class="mut">${fmt(r.dep/W)}</td>
+      <td class="${r.ebt<0?'neg':''}">${fmt(r.ebt/W)}</td><td class="mut">${fmt(r.tax/W)}</td>
+      <td class="${r.net<0?'neg':''}">${fmt(r.net/W)}</td><td>${fmt(r.cf/W)}</td>
+      <td class="${r.cum<0?'neg':'n1'}">${fmt(r.cum/W)}</td></tr>`).join('');
+
+  $('foot').innerHTML=`
+    <b>电价（张家口／冀北电网，四段）：</b>尖峰 ${fmt(pjf,2)}｜高峰 ${fmt(pgf,2)}｜平段 ${fmt(ppd,2)}｜谷段 ${fmt(pg,2)} 元/kWh。
+    高峰－谷价差 ${fmt(pgf-pg,3)}，尖峰－谷价差 ${fmt(pjf-pg,3)} 元/kWh。<br>
+    <b>运行策略：</b>每年 ${days} 天、每天一充一放，谷段充电；其中 ${njf} 天按尖峰价放电（6-8月、1月、11-12月），
+    ${days-njf} 天按高峰价放电（2-5月、9-10月）。<br>
+    <b>储能假设：</b>DOD ${F.dod*100}%｜充/放电效率各 ${F.etaC*100}%（综合 ${fmt(F.etaC*F.etaD*100,1)}%）｜
+    可用容量 = 额定×(1−2%×年数+1%)，首年 ${fmt(m.rows[0].avail,0)} kWh｜运维 = 调峰毛利×${F.omRate*100}%｜
+    折旧 10 年直线｜所得税 25%｜不计期末残值、不计电池更换（15年×${days}次≈${fmt(days*15/1000,1)}千次循环，LFP 可覆盖）。<br>
+    <b>消纳约束：</b>储能只服务两座充电站，实际放电量 = min(满发可放, 两站放电时段用电量)，放不出去的不计收益。<br>
+    <b>充电站假设：</b>沿用原模型（服务费 0.8 元/度起、每 3 年降 5%、分成 40%、运营费率 5%、质保 2%、单瓦造价 0.8 元/W、年 330 天），购电价取平段 ${fmt(ppd,2)} 元/kWh。<br>
+    <b>已修正的原表错误：</b>① IRR 用「年利润」当现金流；② 回收期公式硬编码「第6年」；③ 所得税行只算到第10年且未接入结果。`;
+
+  chart1(capM,epc,pjf,pgf,pg,days,njf,absorb,m,matched);
+  chart2(m,mMatch);
+}
+
+/* ===== 图表 ===== */
+const NS='http://www.w3.org/2000/svg';
+const el=(n,a)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);return e;};
+function tx(x,y,t,an='middle',fill='#4a5567',sz=11,w=600){
+  const e=el('text',{x,y,'text-anchor':an,fill,'font-size':sz*FS,'font-weight':w,'font-family':'inherit'});
+  e.textContent=t; return e;}
+
+function chart1(capM,epc,pjf,pgf,pg,days,njf,absorb,cur,matched){
+  const s=$('c1'); s.innerHTML='';
+  const mo=FS>1, L=mo?62:48,R=mo?26:20,T=mo?24:16,B=mo?50:34, ph=200, H=T+ph+B, pw=560-L-R;
+  s.setAttribute('viewBox',`0 0 560 ${H}`);
+  const maxC=15, pts=[];
+  for(let c=0.5;c<=maxC;c+=0.25){
+    const x=ess(c,epc,pjf,pgf,pg,days,njf,absorb);
+    pts.push([c, x.irr===null?null:x.irr]);
+  }
+  const ys=pts.map(p=>p[1]).filter(v=>v!==null);
+  const hi=Math.max(0.15,Math.ceil(Math.max(...ys)*20)/20), lo=Math.min(0,Math.floor(Math.min(...ys)*20)/20);
+  const X=c=>L+pw*c/maxC, Y=v=>T+ph-ph*(v-lo)/((hi-lo)||1);
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4, y=Y(v);
+    s.appendChild(el('line',{x1:L,y1:y,x2:L+pw,y2:y,stroke:'#dde3ed','stroke-width':1.5}));
+    s.appendChild(tx(L-8,y+4,(v*100).toFixed(0)+'%','end'));
+  }
+  if(lo<0) s.appendChild(el('line',{x1:L,y1:Y(0),x2:L+pw,y2:Y(0),stroke:'#0a1020','stroke-width':2}));
+  for(let c=0;c<=maxC;c+=3) s.appendChild(tx(X(c),T+ph+16*FS+3,c+'MWh','middle'));
+  s.appendChild(el('polyline',{points:pts.filter(p=>p[1]!==null).map(p=>X(p[0])+','+Y(p[1])).join(' '),
+    fill:'none',stroke:'#047857','stroke-width':3,'stroke-linejoin':'round'}));
+  if(matched<=maxC){
+    s.appendChild(el('line',{x1:X(matched),y1:T,x2:X(matched),y2:T+ph,stroke:'#78849a','stroke-width':2,'stroke-dasharray':'5 4'}));
+    s.appendChild(tx(Math.min(X(matched)+7,L+pw-72*FS),T+12*FS,'匹配 '+fmt(matched,1)+'MWh','start','#78849a',10.5,800));
+  }
+  if(capM<=maxC&&cur.irr!==null){
+    s.appendChild(el('circle',{cx:X(capM),cy:Y(cur.irr),r:7,fill:'#fff',stroke:'#c2410c','stroke-width':4}));
+    s.appendChild(tx(X(capM),Y(cur.irr)-14*FS,irrT(cur.irr),'middle','#c2410c',12,800));
+  }
+  s.appendChild(tx(L-8,T-5,'IRR','end','#78849a',10));
+}
+
+function chart2(cur,match){
+  const s=$('c2'); s.innerHTML='';
+  const mo=FS>1, L=mo?70:56,R=mo?24:18,T=mo?24:16,B=mo?46:32, ph=204, H=T+ph+B, pw=560-L-R;
+  s.setAttribute('viewBox',`0 0 560 ${H}`);
+  const ser=[[cur.cums,'#0052cc',4],[match.cums,'#047857',2.5]];
+  const av=ser.flatMap(x=>x[0]), step=100*W;
+  const hi=Math.ceil(Math.max(...av)/step)*step, lo=Math.floor(Math.min(...av)/step)*step;
+  const Y=v=>T+ph-ph*(v-lo)/((hi-lo)||1), X=i=>L+pw*i/15;
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4, y=Y(v);
+    s.appendChild(el('line',{x1:L,y1:y,x2:L+pw,y2:y,stroke:'#dde3ed','stroke-width':1.5}));
+    s.appendChild(tx(L-8,y+4,(v/W).toFixed(0),'end'));
+  }
+  s.appendChild(el('line',{x1:L,y1:Y(0),x2:L+pw,y2:Y(0),stroke:'#0a1020','stroke-width':2}));
+  for(let i=0;i<=15;i+=3) s.appendChild(tx(X(i),T+ph+16*FS+3,'第'+i+'年','middle'));
+  ser.forEach(([d,c,w],k)=>s.appendChild(el('polyline',{points:d.map((v,i)=>X(i)+','+Y(v)).join(' '),
+    fill:'none',stroke:c,'stroke-width':w,'stroke-linejoin':'round','stroke-dasharray':k?'6 4':''})));
+  cur.cums.forEach((v,i)=>s.appendChild(el('circle',{cx:X(i),cy:Y(v),r:3.4,fill:'#0052cc'})));
+  if(cur.pb!==null&&cur.pb>0&&cur.pb<=15){
+    const px=X(cur.pb);
+    s.appendChild(el('line',{x1:px,y1:T,x2:px,y2:T+ph,stroke:'#b45309','stroke-width':2,'stroke-dasharray':'5 4'}));
+    s.appendChild(tx(Math.min(px+7,L+pw-62*FS),T+12*FS,'回收 '+fmt(cur.pb,2)+'年','start','#b45309',11,800));
+  }
+  s.appendChild(tx(L-8,T-5,'万元','end','#78849a',10));
+}
+
+/* ===== 事件 ===== */
+$('seg_plan').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); PLAN=+b.dataset.v; render();
+});
+Object.values(S).forEach(x=>x.addEventListener('input',render));
+function reset(){
+  S.cap.value=5;S.epc.value=0.96;S.days.value=336;S.njf.value=168;
+  S.pjf.value=0.99;S.pgf.value=0.85;S.pg.value=0.29;S.ppd.value=0.57;
+  S.tk.value=300;S.ck.value=120;S.ps.value=45;PLAN=1;
+  [...$('seg_plan').children].forEach((b,i)=>b.classList.toggle('on',i===0));
+  render();
+}
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,120)});
+render();
+</script>
+</body>
+</html>
